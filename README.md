@@ -63,6 +63,15 @@ Phase 1〜5 complete (package skeleton, state recipe / DB isolation core,
 signed-URL layer, cleanup command, demo-app verification). See `PLAN.md` in
 this repository for the full development log and verification history.
 
+2026-07-31 — fixed a session-ledger bug found in real-world use: hitting a
+fresh signed link while an older `jess_session` cookie was still live wrote
+the new session's bookkeeping row into a demo SQLite copy instead of the
+host DB (the middleware had already swapped the default connection), so the
+next request silently fell back to the real DB — an alternating
+works/doesn't pattern. Ledger reads/writes are now pinned to the host
+connection captured at construction; regression-tested at both the manager
+and HTTP level.
+
 ---
 
 ## Quick start

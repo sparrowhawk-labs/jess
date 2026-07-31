@@ -35,6 +35,19 @@
 > config/route/接続名/cookie名/artisan コマンド等すべて `nawate:*` → `jess:*` に統一。以降この
 > ドキュメント内の `nawate` 表記（本節より上）は当時の記録としてそのまま残す。
 
+> **2026-07-31 追記（実運用バグ修正: 旧デモ cookie が生きたまま新しい署名リンクを踏むと1回おきに実DBが表示される）**
+> nonblok-v3 のドッグフードで実測・再現。旧セッションの `jess_session` cookie が残った状態で新しい
+> 署名リンクを踏むと、`SwitchDemoConnection` が先に `database.default` をデモ SQLite へ切り替え、
+> その後の `provision()` が台帳 insert を実行時デフォルト接続（＝デモコピー側）に書いてしまい、
+> 新セッションの台帳行がホスト DB に存在しない → 次リクエストの `find()` が黙って no-op → 実 DB が
+> 表示される（成功/失敗の交互パターン）。修正＝**台帳の読み書きをホスト接続にピン留め**:
+> `DemoSessionManager` がコンストラクタで `database.default`（singleton 解決はどの activate よりも
+> 先行するため必ずホスト接続名）を捕捉し、`provision()` の台帳 insert・`find()` の台帳 SELECT・
+> `withDemoConnection()` の復元先をすべて `$this->hostConnection` 固定に変更。回帰テスト2本追加
+> （`DemoSessionManagerTest`「provision while a previous demo session is active…」＋
+> `StateLinkTest`「a second signed link hit with a stale demo cookie…」— 修正前コードで両方 FAIL、
+> 修正後 19 tests / 63 assertions 全 PASS・`--order-by=random` 安定を確認）。
+
 ---
 
 ## 確定済みの設計判断（前段の会話で合意）
@@ -112,7 +125,7 @@ NawateController（ホストアプリの業務コードから完全分離）
   - `Nawate::link(['user:repeat_customer'], '/cart', userId: 1)` を叩く → `/cart` へリダイレクト → **リダイレクト先への2回目のリクエスト**で `Auth::id() === 1` かつ複製DBに適用したfragmentの内容（`name === 'Alice'`）が見える
   - 改ざんされたリンク・期限切れリンクはどちらも403 + 「無効です」を含む日本語メッセージ
   - 再現: `./vendor/bin/pest`（6 tests / 18 assertions / 全PASS、`--order-by=random` でも安定）
-- **既知の未対応**: `find()` はミドルウェア実行時点の `database.default` に依存しており、Octane等の永続プロセスでの安全性は未検証のまま（PLAN.md リスク§1と同じ既知の残課題）。
+- ~~**既知の未対応**: `find()` はミドルウェア実行時点の `database.default` に依存しており、Octane等の永続プロセスでの安全性は未検証のまま（PLAN.md リスク§1と同じ既知の残課題）。~~ → **2026-07-31 解消**: 台帳の読み書きをホスト接続にピン留め（下記「2026-07-31 追記」のバグ修正で `find()`/`provision()` とも `$this->hostConnection` 固定に変更）。
 
 ---
 

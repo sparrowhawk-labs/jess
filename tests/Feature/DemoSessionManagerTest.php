@@ -54,6 +54,33 @@ test('activate() points the runtime default connection at the session db for the
     // activate() intentionally leaves the switch in place for a real request.)
 });
 
+test('provision while a previous demo session is active keeps the ledger on the host DB', function () {
+    Jess::fragment('noop', function () {
+    });
+
+    $manager = app(DemoSessionManager::class);
+
+    $first = $manager->provision(new StateRecipe(fragments: ['noop']));
+    $manager->activate($first);
+
+    // This is the state SwitchDemoConnection leaves behind when a stale
+    // jess_session cookie precedes a fresh signed-link hit: the runtime
+    // default now points at the first session's demo copy. Provisioning
+    // the second session must still write its bookkeeping row to the
+    // host DB — not into whatever demo copy happens to be active.
+    $second = $manager->provision(new StateRecipe(fragments: ['noop']));
+
+    $onHost = DB::connection('testing')
+        ->table('jess_demo_sessions')
+        ->where('uuid', $second->uuid)
+        ->exists();
+    expect($onHost)->toBeTrue();
+
+    // And find() — what the middleware uses on the next request — resolves
+    // it regardless of the currently active connection.
+    expect($manager->find($second->uuid))->not->toBeNull();
+});
+
 test('unregistered fragment name throws instead of silently no-op-ing', function () {
     $manager = app(DemoSessionManager::class);
 

@@ -18,9 +18,23 @@ use SparrowhawkLabs\Jess\Support\StateRecipe;
  */
 class DemoSessionManager
 {
+    /**
+     * The host app's own default connection name, captured before any
+     * activate() can have swapped the runtime default (this singleton is
+     * resolved by the middleware/controller ahead of any switch). The
+     * session ledger (jess_demo_sessions) must always be read and written
+     * on this connection: when a stale demo-session cookie is still live,
+     * SwitchDemoConnection swaps database.default to the old demo copy
+     * *before* a new signed-link hit provisions — following the runtime
+     * default there would write the new session's ledger row into a demo
+     * SQLite copy, where the next request's find() can never see it.
+     */
+    private readonly string $hostConnection;
+
     public function __construct(
         private readonly FragmentRegistry $fragments,
     ) {
+        $this->hostConnection = (string) config('database.default');
     }
 
     public function provision(StateRecipe $recipe): DemoSession
@@ -47,12 +61,11 @@ class DemoSessionManager
         }
 
         $connection = (string) config('jess.connection', 'jess_demo');
-        $originalDefault = (string) config('database.default');
 
         // Apply fragments against the new file while it's the default
         // connection (host Seeders reference no connection name), then
-        // restore whatever was default before — provisioning itself must
-        // not leave global state switched.
+        // restore the host default — provisioning itself must not leave
+        // global state switched (switching is activate()'s job).
         $this->withDemoConnection($connection, $targetPath, function () use ($recipe) {
             foreach ($recipe->fragments as $name) {
                 // Let an unregistered-name lookup fail as itself (a config/
@@ -71,7 +84,7 @@ class DemoSessionManager
         $recipeLabel = implode(',', $recipe->fragments);
         $expiresAt = now()->addHours((int) config('jess.cleanup_after_hours', 24));
 
-        DB::connection($originalDefault)->table('jess_demo_sessions')->insert([
+        DB::connection($this->hostConnection)->table('jess_demo_sessions')->insert([
             'uuid' => $uuid,
             'recipe' => $recipeLabel,
             'demo_db_path' => $targetPath,
@@ -90,7 +103,7 @@ class DemoSessionManager
      */
     public function find(string $uuid): ?DemoSession
     {
-        $row = DB::table('jess_demo_sessions')
+        $row = DB::connection($this->hostConnection)->table('jess_demo_sessions')
             ->where('uuid', $uuid)
             ->where('expires_at', '>', now())
             ->first();
@@ -118,8 +131,6 @@ class DemoSessionManager
 
     private function withDemoConnection(string $connection, string $path, Closure $callback): void
     {
-        $originalDefault = (string) config('database.default');
-
         $this->configureConnection($connection, $path);
         config(['database.default' => $connection]);
 
@@ -127,7 +138,7 @@ class DemoSessionManager
             $callback();
         } finally {
             DB::purge($connection);
-            config(['database.default' => $originalDefault]);
+            config(['database.default' => $this->hostConnection]);
         }
     }
 
