@@ -72,6 +72,39 @@ test('a second signed link hit with a stale demo cookie still provisions a finda
         ->assertJson(['authenticated_as' => 1, 'name' => 'Alice']);
 });
 
+test('a demo login survives landing on an auth-middleware route', function () {
+    // nadi (first host-app integration): the host's real DB also has a users
+    // table, but without the demo user — if Authenticate sorts ahead of
+    // SwitchDemoConnection, the auth check resolves the session's userId
+    // against the host DB, finds nothing, and 302s every request to /login.
+    DB::connection('testing')->statement(
+        'CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT, is_repeat_customer INTEGER DEFAULT 0)'
+    );
+
+    Route::middleware(['web', 'auth'])->get('/account', function () {
+        return response()->json(['authenticated_as' => Auth::id()]);
+    });
+    Route::middleware('web')->get('/login', fn () => 'login')->name('login');
+
+    $this->get(Jess::link(['user:repeat_customer'], '/account', userId: 1))
+        ->assertRedirect('/account');
+
+    $uuid = DB::connection('testing')->table('jess_demo_sessions')->value('uuid');
+
+    // Make the follow-up behave like the genuinely fresh request it would be
+    // in a real app: the default connection starts back on the host DB and
+    // the guard's cached user is gone, so authentication must re-resolve
+    // through whatever connection is active when Authenticate runs.
+    config(['database.default' => 'testing']);
+    DB::purge((string) config('jess.connection'));
+    Auth::forgetGuards();
+
+    $this->withCookie('jess_session', $uuid)
+        ->get('/account')
+        ->assertOk()
+        ->assertJson(['authenticated_as' => 1]);
+});
+
 test('a tampered link is rejected with a plain-language message in the app locale (default: English)', function () {
     $url = Jess::link(['user:repeat_customer'], '/cart', userId: 1) . 'x';
 

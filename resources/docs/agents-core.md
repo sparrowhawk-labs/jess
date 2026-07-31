@@ -26,6 +26,9 @@ troubleshooting): **`docs/jess/README.md`**.
    session is a **fresh copy** of the template DB, so an auto-increment ID
    is not something you control ahead of time. Use a fixed, deterministic ID
    in your Seeder instead: `User::updateOrCreate(['id' => KNOWN_ID], [...])`.
+   Fragments run inside `Model::unguarded()`, so this works even when `id`
+   is not in the model's `$fillable` — no need to loosen mass-assignment
+   guards on host models or wrap fragments in `unguarded()` yourself.
 3. **Jess is inert until `JESS_ENABLED=true`.** Set it only in
    local/staging/demo environments — never production.
 4. **`config('jess.template_db_path')` must stay in sync with your
@@ -36,7 +39,13 @@ troubleshooting): **`docs/jess/README.md`**.
    enabled. The demo-DB connection swap happens mid-request-pipeline; a
    DB-backed session store can desync across requests as a result (found and
    fixed empirically — see the full docs for why).
-6. **Fragments run on SQLite, whatever your production DB engine is.** A
+6. **Landing on `auth`-protected routes works out of the box.** Jess
+   registers its connection-switch middleware in the middleware priority
+   list ahead of `Authenticate`, so the demo user resolves against the demo
+   DB. No `$middleware->priority([...])` declaration is needed in the host's
+   `bootstrap/app.php` (and an existing one that lists
+   `SwitchDemoConnection` is left untouched).
+7. **Fragments run on SQLite, whatever your production DB engine is.** A
    fragment that calls a MySQL/PostgreSQL-only SQL feature (FULLTEXT
    `MATCH`/`AGAINST`, `RAND()`, a JSON operator, a stored procedure) fails at
    provisioning time with `FragmentExecutionException`, naming the fragment
