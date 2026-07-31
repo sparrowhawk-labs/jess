@@ -226,6 +226,27 @@ during Phase 5 verification.
   `EncryptCookies`/`StartSession`), automatically at boot. Hosts need no
   `$middleware->priority([...])` declaration; one that already lists
   `SwitchDemoConnection` is left as-is.
+- **The demo banner and one-click exit.** While a demo session is active,
+  full-page HTML responses get a small corner chip injected before
+  `</body>`: an amber dot + "demo state" label + the active recipe + an
+  exit link. It auto-collapses to just the dot after 3 seconds (hover
+  re-expands) so it never gets in the way of the screen being demoed.
+  The exit link hits `GET /jess/exit`, which only drops the `jess_session`
+  cookie — the connection switch is cookie-driven, so the very next request
+  is back on the host's real DB, no other teardown needed.
+- **Return-to-origin on exit.** On non-demo pages (still only while
+  `jess.enabled`), jess injects a ~1 KB recorder script that keeps the
+  current URL + scroll position in `sessionStorage`. When you exit a demo,
+  the banner routes through `/jess/exit?to=<that url>` (same-app relative
+  paths only — anything else falls back to `config('jess.exit_redirect')`,
+  default `/`), and on landing the scroll position is restored with a brief
+  confirmation toast. Entered from outside the app (nothing recorded)?
+  Exit lands on `exit_redirect`. Set `jess.banner => false` to disable the
+  banner and both scripts; publish `--tag=jess-views` to restyle them.
+  Injection only touches successful, full-page `text/html` GET responses —
+  JSON, redirects, streams and Livewire partial updates pass through
+  untouched. (Strict-CSP hosts may block the inline style/script: the
+  banner simply won't render; nothing else breaks.)
 - **Expired/tampered links.** Laravel's `InvalidSignatureException` is
   caught and replaced, scoped only to the `jess.state` route, with a plain
   Japanese explanation page (403) instead of the framework default.

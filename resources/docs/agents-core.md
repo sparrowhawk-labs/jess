@@ -52,6 +52,17 @@ troubleshooting): **`docs/jess/README.md`**.
    and — when the signature is recognizable (`no such function: …`) —
    flagging the likely cause. See "Requirements" in the full docs.
 
+### Demo banner / exit (automatic — do not rebuild in the host app)
+
+While a demo session is active, jess injects a corner banner (recipe label
++ "exit" link, auto-collapsing to a dot) into full-page HTML responses.
+Exit drops the demo cookie and returns the user to the page + scroll
+position they were on before entering the demo (recorded via a tiny
+script jess injects on non-demo pages while enabled); with no recording it
+lands on `config('jess.exit_redirect')` (default `/`). Disable everything
+with `jess.banner => false`; restyle via `vendor:publish --tag=jess-views`.
+Host apps should NOT implement their own demo banner or exit UI.
+
 ### Cleanup
 
 `php artisan jess:cleanup [--dry-run]` deletes demo sessions past their

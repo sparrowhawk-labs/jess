@@ -28,6 +28,7 @@ class JessServiceProvider extends ServiceProvider
     {
         $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
         $this->loadTranslationsFrom(__DIR__ . '/../resources/lang', 'jess');
+        $this->loadViewsFrom(__DIR__ . '/../resources/views', 'jess');
 
         // Inert unless explicitly enabled — no route, no middleware, no
         // exception handling registered at all in the disabled state.
@@ -54,6 +55,10 @@ class JessServiceProvider extends ServiceProvider
             $this->publishes([
                 __DIR__ . '/../resources/lang' => $this->app->langPath('vendor/jess'),
             ], 'jess-lang');
+
+            $this->publishes([
+                __DIR__ . '/../resources/views' => resource_path('views/vendor/jess'),
+            ], 'jess-views');
         }
     }
 
