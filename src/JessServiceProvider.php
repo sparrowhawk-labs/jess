@@ -2,7 +2,10 @@
 
 namespace SparrowhawkLabs\Jess;
 
+use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
 use Illuminate\Contracts\Debug\ExceptionHandler;
+use Illuminate\Contracts\Http\Kernel as HttpKernelContract;
+use Illuminate\Foundation\Http\Kernel as HttpKernel;
 use Illuminate\Routing\Exceptions\InvalidSignatureException;
 use Illuminate\Support\ServiceProvider;
 use SparrowhawkLabs\Jess\Console\CleanupCommand;
@@ -25,12 +28,13 @@ class JessServiceProvider extends ServiceProvider
     {
         $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
         $this->loadTranslationsFrom(__DIR__ . '/../resources/lang', 'jess');
+        $this->loadViewsFrom(__DIR__ . '/../resources/views', 'jess');
 
         // Inert unless explicitly enabled — no route, no middleware, no
         // exception handling registered at all in the disabled state.
         if (config('jess.enabled')) {
             $this->loadRoutesFrom(__DIR__ . '/../routes/jess.php');
-            $this->app['router']->pushMiddlewareToGroup('web', SwitchDemoConnection::class);
+            $this->registerMiddleware();
             $this->registerExpiredLinkPage();
         }
 
@@ -51,7 +55,50 @@ class JessServiceProvider extends ServiceProvider
             $this->publishes([
                 __DIR__ . '/../resources/lang' => $this->app->langPath('vendor/jess'),
             ], 'jess-lang');
+
+            $this->publishes([
+                __DIR__ . '/../resources/views' => resource_path('views/vendor/jess'),
+            ], 'jess-views');
         }
+    }
+
+    /**
+     * Both the group membership and the priority entry must go through the
+     * Kernel, not the Router: every Kernel group/priority mutation calls
+     * syncMiddlewareToRouter(), which overwrites the Router's groups with
+     * the Kernel's own — a router-level pushMiddlewareToGroup() would be
+     * silently wiped by the very next sync.
+     *
+     * The priority entry itself exists because being at the *end* of the
+     * 'web' group is not enough: Laravel's middleware priority sorts
+     * `Authenticate` ahead of any unlisted group middleware, so on an
+     * `auth`-protected landing route the auth check would run while
+     * `database.default` still points at the host's real DB — a demo-only
+     * userId can never resolve there, and every signed link bounces to
+     * /login. Insert SwitchDemoConnection just before the auth middleware
+     * (and thereby after EncryptCookies, which must decrypt the
+     * jess_session cookie first). The host's own bootstrap/app.php
+     * middleware config is applied when the Kernel is resolved — before
+     * providers boot — so neither registration is overwritten by it.
+     * Idempotent: a host that already lists SwitchDemoConnection in a
+     * custom priority() is left untouched.
+     */
+    private function registerMiddleware(): void
+    {
+        $this->callAfterResolving(HttpKernelContract::class, function ($kernel) {
+            if ($kernel instanceof HttpKernel) {
+                $kernel->addToMiddlewarePriorityBefore(
+                    [AuthenticatesRequests::class, \Illuminate\Auth\Middleware\Authenticate::class],
+                    SwitchDemoConnection::class,
+                );
+                $kernel->appendMiddlewareToGroup('web', SwitchDemoConnection::class);
+            } else {
+                // Custom kernel not derived from the framework's: fall back
+                // to the router-level push (pre-priority behavior — auth
+                // landing routes then need a manual priority() declaration).
+                $this->app['router']->pushMiddlewareToGroup('web', SwitchDemoConnection::class);
+            }
+        });
     }
 
     /**

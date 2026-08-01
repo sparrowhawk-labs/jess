@@ -81,6 +81,33 @@ test('provision while a previous demo session is active keeps the ledger on the 
     expect($manager->find($second->uuid))->not->toBeNull();
 });
 
+test('a fragment can force a fixed ID on a normally-guarded model', function () {
+    // An ordinary host-app model: id is not fillable, so outside of
+    // Model::unguarded() the fixed-ID pattern from the docs would silently
+    // drop the id and create an auto-increment row instead (nadi, first
+    // host-app integration) — breaking the recipe's userId login.
+    $model = new class extends \Illuminate\Database\Eloquent\Model
+    {
+        protected $table = 'users';
+
+        public $timestamps = false;
+
+        protected $fillable = ['name'];
+    };
+
+    Jess::fragment('user:fixed_id', function () use ($model) {
+        $model::updateOrCreate(['id' => 900], ['name' => 'Fixed']);
+    });
+
+    $session = app(DemoSessionManager::class)->provision(
+        new StateRecipe(fragments: ['user:fixed_id'], userId: 900)
+    );
+
+    $pdo = new PDO('sqlite:' . $session->sqlitePath);
+    $row = $pdo->query('SELECT id, name FROM users WHERE name = \'Fixed\'')->fetch(PDO::FETCH_ASSOC);
+    expect((int) $row['id'])->toBe(900);
+});
+
 test('unregistered fragment name throws instead of silently no-op-ing', function () {
     $manager = app(DemoSessionManager::class);
 

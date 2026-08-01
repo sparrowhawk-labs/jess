@@ -1,0 +1,27 @@
+- generic [active] [ref=e1]:
+  - status [ref=e2]:
+    - generic [ref=e4]: デモ表示中
+    - code [ref=e5]: user:repeat · cart:with_items
+    - link "元に戻る" [ref=e7] [cursor=pointer]:
+      - /url: "#"
+  - main [ref=e8]:
+    - generic [ref=e9]:
+      - heading "Sparrow Store" [level=1] [ref=e10]
+      - generic [ref=e11]: こんにちは、佐藤 花子 さん（リピーター）
+    - paragraph [ref=e12]: ホストアプリのモック画面 — jess のバナーがこの上にどう載るかを確認する
+    - generic [ref=e13]:
+      - generic [ref=e14]:
+        - heading "オーガニックコーヒー豆 200g" [level=2] [ref=e16]
+        - paragraph [ref=e17]: ¥1,480
+        - button "カートに入れる" [ref=e18] [cursor=pointer]
+      - generic [ref=e19]:
+        - heading "セラミックドリッパー" [level=2] [ref=e21]
+        - paragraph [ref=e22]: ¥2,860
+        - button "カートに入れる" [ref=e23] [cursor=pointer]
+      - generic [ref=e24]:
+        - heading "ハンドグラインダー" [level=2] [ref=e26]
+        - paragraph [ref=e27]: ¥6,930
+        - button "カートに入れる" [ref=e28] [cursor=pointer]
+    - generic [ref=e29]:
+      - generic [ref=e30]: "カート: 2点（¥4,340）"
+      - generic [ref=e31]: "購入履歴: 3件"

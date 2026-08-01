@@ -3,6 +3,7 @@
 namespace SparrowhawkLabs\Jess\Services;
 
 use Closure;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use RuntimeException;
@@ -66,19 +67,27 @@ class DemoSessionManager
         // connection (host Seeders reference no connection name), then
         // restore the host default — provisioning itself must not leave
         // global state switched (switching is activate()'s job).
+        // Fragments run unguarded: the fixed-ID pattern the docs mandate
+        // (`updateOrCreate(['id' => KNOWN_ID], ...)`) silently loses the id
+        // on any normally-guarded model (auto-increment row instead), which
+        // makes the recipe's userId login fail with no error. Fragments only
+        // ever write to the isolated demo copy, so disabling mass-assignment
+        // protection here costs nothing.
         $this->withDemoConnection($connection, $targetPath, function () use ($recipe) {
-            foreach ($recipe->fragments as $name) {
-                // Let an unregistered-name lookup fail as itself (a config/
-                // typo error, not a runtime failure) — only the closure's
-                // own execution gets wrapped with fragment-attributed context.
-                $callback = $this->fragments->get($name);
+            Model::unguarded(function () use ($recipe) {
+                foreach ($recipe->fragments as $name) {
+                    // Let an unregistered-name lookup fail as itself (a config/
+                    // typo error, not a runtime failure) — only the closure's
+                    // own execution gets wrapped with fragment-attributed context.
+                    $callback = $this->fragments->get($name);
 
-                try {
-                    $callback();
-                } catch (\Throwable $e) {
-                    throw FragmentExecutionException::forFragment($name, $e);
+                    try {
+                        $callback();
+                    } catch (\Throwable $e) {
+                        throw FragmentExecutionException::forFragment($name, $e);
+                    }
                 }
-            }
+            });
         });
 
         $recipeLabel = implode(',', $recipe->fragments);

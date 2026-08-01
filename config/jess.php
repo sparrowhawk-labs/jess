@@ -60,6 +60,32 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Demo banner
+    |--------------------------------------------------------------------------
+    |
+    | While a demo session is active, jess injects a small corner banner
+    | into full-page HTML responses: it names the active recipe and offers
+    | a one-click exit back to the real DB. On non-demo pages (still only
+    | while jess.enabled) a tiny script records the current URL + scroll
+    | position so that exit can land you exactly where you were before
+    | entering the demo. Set false to disable both.
+    |
+    */
+    'banner' => env('JESS_BANNER', true),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Exit redirect
+    |--------------------------------------------------------------------------
+    |
+    | Where the banner's exit lands when no pre-demo location was recorded
+    | (e.g. the demo link was opened from outside the app).
+    |
+    */
+    'exit_redirect' => env('JESS_EXIT_REDIRECT', '/'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Cleanup after (hours)
     |--------------------------------------------------------------------------
     |

@@ -173,6 +173,13 @@ Two rules follow directly from that design:
    then reliably logs in as the user the fragment just created, because the
    ID is forced rather than left to auto-increment.
 
+   Jess runs fragments inside `Model::unguarded()`, so the forced `id`
+   survives even on models that don't list `id` in `$fillable` (i.e. every
+   ordinarily-guarded Laravel model — without this, Laravel would silently
+   drop the `id` and create an auto-increment row, and the `userId` login
+   would fail with no error). Fragments only ever write to the isolated
+   demo copy, so the relaxed guard never touches real data.
+
 A worked example of this pattern (3-axis EC demo — user type × purchase
 status × cart contents) lives in the sibling `jess-demo-app` project built
 during Phase 5 verification.
@@ -203,11 +210,43 @@ during Phase 5 verification.
   the connection name.
 - **Staying switched across requests.** The controller sets a
   `jess_session` cookie holding the session UUID. A `SwitchDemoConnection`
-  middleware (pushed onto the `web` group, only while `jess.enabled`)
+  middleware (appended to the `web` group, only while `jess.enabled`)
   reads that cookie on every subsequent request and re-activates the same
   session's connection — so a redirect chain, or simply browsing around
   after landing, keeps seeing the demo data instead of snapping back to the
   host app's real DB.
+- **Middleware priority: the switch happens before `Authenticate`.** Group
+  membership alone isn't enough — Laravel's middleware priority sorts
+  `Authenticate` ahead of any unlisted group middleware, so on an
+  `auth`-protected landing route the auth check would run while
+  `database.default` still points at the host's real DB; a demo-only
+  `userId` can never resolve there and every request would bounce to
+  `/login`. Jess therefore inserts `SwitchDemoConnection` into the kernel's
+  middleware priority list just before the auth middleware (and after
+  `EncryptCookies`/`StartSession`), automatically at boot. Hosts need no
+  `$middleware->priority([...])` declaration; one that already lists
+  `SwitchDemoConnection` is left as-is.
+- **The demo banner and one-click exit.** While a demo session is active,
+  full-page HTML responses get a small corner chip injected before
+  `</body>`: an amber dot + "demo state" label + the active recipe + an
+  exit link. It auto-collapses to just the dot after 3 seconds (hover
+  re-expands) so it never gets in the way of the screen being demoed.
+  The exit link hits `GET /jess/exit`, which only drops the `jess_session`
+  cookie — the connection switch is cookie-driven, so the very next request
+  is back on the host's real DB, no other teardown needed.
+- **Return-to-origin on exit.** On non-demo pages (still only while
+  `jess.enabled`), jess injects a ~1 KB recorder script that keeps the
+  current URL + scroll position in `sessionStorage`. When you exit a demo,
+  the banner routes through `/jess/exit?to=<that url>` (same-app relative
+  paths only — anything else falls back to `config('jess.exit_redirect')`,
+  default `/`), and on landing the scroll position is restored with a brief
+  confirmation toast. Entered from outside the app (nothing recorded)?
+  Exit lands on `exit_redirect`. Set `jess.banner => false` to disable the
+  banner and both scripts; publish `--tag=jess-views` to restyle them.
+  Injection only touches successful, full-page `text/html` GET responses —
+  JSON, redirects, streams and Livewire partial updates pass through
+  untouched. (Strict-CSP hosts may block the inline style/script: the
+  banner simply won't render; nothing else breaks.)
 - **Expired/tampered links.** Laravel's `InvalidSignatureException` is
   caught and replaced, scoped only to the `jess.state` route, with a plain
   Japanese explanation page (403) instead of the framework default.
@@ -216,8 +255,9 @@ during Phase 5 verification.
 
 If the host app's `SESSION_DRIVER` is `database`, the session table lookup
 happens through `config('database.default')` at whatever point in the
-middleware pipeline `StartSession` runs. Because `SwitchDemoConnection` is
-appended to the *end* of the `web` group, a request can start reading its
+middleware pipeline `StartSession` runs. Because `SwitchDemoConnection` runs
+*after* `StartSession` (it sorts between `StartSession` and
+`Authenticate` — see middleware priority above), a request can start reading its
 session against the host's real DB and finish writing it against the demo
 DB (or vice-versa on the next request) — the two can desync across
 requests. This was found empirically during Phase 5's `jess-demo-app`

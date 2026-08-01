@@ -1,0 +1,57 @@
+- generic [active] [ref=e1]:
+  - main [ref=e2]:
+    - generic [ref=e3]:
+      - heading "Sparrow Admin — 実装済み機能一覧" [level=1] [ref=e4]
+      - generic [ref=e5]: 実DB・通常運用中の画面
+    - paragraph [ref=e6]: 下へスクロールして、途中にある「この状態を試す」からデモに入ってください。戻ってきた時、この位置に復帰します。
+    - generic [ref=e7]: §1 基本機能
+    - generic [ref=e8]:
+      - paragraph [ref=e9]: 会員登録とプロフィール編集
+      - link "この状態を試す" [ref=e10] [cursor=pointer]:
+        - /url: "#"
+    - generic [ref=e11]:
+      - paragraph [ref=e12]: 商品一覧・検索・絞り込み
+      - link "この状態を試す" [ref=e13] [cursor=pointer]:
+        - /url: "#"
+    - generic [ref=e14]:
+      - paragraph [ref=e15]: カート追加と数量変更
+      - link "この状態を試す" [ref=e16] [cursor=pointer]:
+        - /url: "#"
+    - generic [ref=e17]: §2 購入フロー
+    - generic [ref=e18]:
+      - paragraph [ref=e19]: ゲスト購入（住所入力あり）
+      - link "この状態を試す" [ref=e20] [cursor=pointer]:
+        - /url: "#"
+    - generic [ref=e21]:
+      - paragraph [ref=e22]: 会員購入（住所・支払い保存済み）
+      - link "この状態を試す" [ref=e23] [cursor=pointer]:
+        - /url: "#"
+    - generic [ref=e24]:
+      - paragraph [ref=e25]: クーポン適用と合計再計算
+      - link "この状態を試す" [ref=e26] [cursor=pointer]:
+        - /url: "#"
+    - generic [ref=e27]: §3 リピーター体験 ← ここから入るのが今回のシナリオ
+    - generic [ref=e28]:
+      - paragraph [ref=e29]:
+        - strong [ref=e30]: リピーター × 購入済み × カートあり
+        - text: の合成状態で /shop に着地
+      - link "この状態を試す" [ref=e31] [cursor=pointer]:
+        - /url: journey-demo.html
+    - generic [ref=e32]:
+      - paragraph [ref=e33]: リピーター向けおすすめ表示
+      - link "この状態を試す" [ref=e34] [cursor=pointer]:
+        - /url: "#"
+    - generic [ref=e35]: §4 異常系
+    - generic [ref=e36]:
+      - paragraph [ref=e37]: 在庫切れ商品の表示
+      - link "この状態を試す" [ref=e38] [cursor=pointer]:
+        - /url: "#"
+    - generic [ref=e39]:
+      - paragraph [ref=e40]: 決済失敗からの復帰
+      - link "この状態を試す" [ref=e41] [cursor=pointer]:
+        - /url: "#"
+    - generic [ref=e42]:
+      - paragraph [ref=e43]: セッション期限切れの扱い
+      - link "この状態を試す" [ref=e44] [cursor=pointer]:
+        - /url: "#"
+  - generic: 元のページ・スクロール位置に復帰しました

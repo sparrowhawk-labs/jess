@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>案B 浮標 — フローティングピル</title>
+<link rel="stylesheet" href="_mock.css">
+<style>
+  .jess-pill {
+    position: fixed; top: 14px; left: 50%; transform: translateX(-50%); z-index: 9999;
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px 8px 15px; border-radius: 999px;
+    background: rgba(255, 255, 255, .78);
+    -webkit-backdrop-filter: blur(16px) saturate(1.4); backdrop-filter: blur(16px) saturate(1.4);
+    border: 1px solid rgba(28, 28, 26, .08);
+    box-shadow: 0 10px 30px rgba(28, 28, 26, .10), 0 1px 3px rgba(28, 28, 26, .06);
+    font-size: 12px; color: #3a3a36;
+  }
+  .jess-pill .dot { width: 6px; height: 6px; border-radius: 50%; background: #e5a94d; animation: jess-breathe 2.6s ease-in-out infinite; }
+  @keyframes jess-breathe { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+  .jess-pill .label { font-weight: 600; letter-spacing: .04em; }
+  .jess-pill code { font-family: "SF Mono", ui-monospace, monospace; font-size: 10.5px; color: #8a8a84; }
+  .jess-pill .sep { width: 1px; height: 14px; background: rgba(28, 28, 26, .12); }
+  .jess-pill a {
+    display: flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 999px;
+    color: #3a3a36; text-decoration: none; font-size: 11.5px; letter-spacing: .03em;
+    background: rgba(28, 28, 26, .05);
+  }
+  .jess-pill a:hover { background: rgba(28, 28, 26, .10); }
+</style>
+</head>
+<body>
+<div class="jess-pill" role="status">
+  <span class="dot"></span>
+  <span class="label">デモ表示中</span>
+  <code>user:repeat · cart:with_items</code>
+  <span class="sep"></span>
+  <a href="#">元に戻る</a>
+</div>
+<main class="shop">
+  <div class="shop-head">
+    <h1>Sparrow Store</h1>
+    <span class="user">こんにちは、佐藤 花子 さん（リピーター）</span>
+  </div>
+  <p class="shop-sub">ホストアプリのモック画面 — jess のバナーがこの上にどう載るかを確認する</p>
+  <div class="grid">
+    <div class="card"><div class="thumb"></div><h2>オーガニックコーヒー豆 200g</h2><p class="price">¥1,480</p><button>カートに入れる</button></div>
+    <div class="card"><div class="thumb"></div><h2>セラミックドリッパー</h2><p class="price">¥2,860</p><button>カートに入れる</button></div>
+    <div class="card"><div class="thumb"></div><h2>ハンドグラインダー</h2><p class="price">¥6,930</p><button>カートに入れる</button></div>
+  </div>
+  <div class="cartbar"><span>カート: 2点（¥4,340）</span><span>購入履歴: 3件</span></div>
+</main>
+</body>
+</html>
