@@ -1,37 +1,40 @@
 {
   conclusion: `
-<p><strong>再調整版</strong> — 前回の提出で <strong>RP1=案C 気配・RP3=自動収納＋ホバー再展開 は確定</strong>。今回は RP2 の要望「同一アプリ内から入った場合、元のページ・スクロール位置までそのまま戻る」を実機構で試作し、通しで動くジャーニーとして提示します。</p>
+<p><strong>実装完了</strong> — デモ中バナー（案C 気配）＋ワンクリック復帰（元ページ・スクロール位置まで）を jess 本体に実装しました。ホストアプリは1行も書かずに全機能が有効になります（<code>jess.banner=false</code> で全停止・view publish で見た目差し替え可）。</p>
 <ul>
-<li><strong>機構</strong>: jess が非デモページに注入する極小スクリプトが「いま居る場所（URL＋スクロール位置）」を sessionStorage に記録し続ける。「元に戻る」→ <code>/jess/exit</code> が cookie を消して記録先へリダイレクト → 着地時にスクロール位置を復元。cookie の上書きなし・サーバー側の新しい状態管理なし</li>
-<li><strong>フォールバック</strong>: 記録が無い進入経路（FEATURES.md・共有リンク等アプリ外から）は <code>jess.exit_redirect</code>（既定 '/'）へ</li>
-<li><strong>タブの扱い</strong>: sessionStorage はタブ単位＝「同じタブで入って戻る」ジャーニーと一致。別タブで開いた場合はブラウザにより記録が引き継がれず、その時はフォールバック着地（実害なし）</li>
+<li>テスト 29件 全緑（新規9件: バナー注入・レコーダー・JSON/Livewire除外・exit の open redirect 防止・exit 後の実DB復帰）</li>
+<li>前回⚠3点はすべて解消（本ページ E2 参照）</li>
+<li>コミット済み: <code>d2b7c2e</code>（worktree ブランチ）</li>
 </ul>
 <p>各項目を判定し、下部の「提出」を押してください。</p>`,
   items: [
     {
-      heading: "RJ1. 復帰ジャーニー: 進入前の位置まで完全に戻れている（ライブで通し体験可）",
+      heading: "E1. 復帰ジャーニーが実装版CSSで通る（ライブで通し体験可）",
       note: `
-<p><a href="assets/jess-banner/journey-origin.html" target="_blank"><strong>▶ ライブで通し体験</strong></a> — §3 までスクロール → 「この状態を試す」→ デモ画面右上のバナー（3秒で点に収納・ホバー展開）→「元に戻る」</p>
-<p><strong>①進入前</strong>: 機能一覧を §3 までスクロールした状態（ここが復帰目標）</p>
-<img src="../assets/jess-banner/shot-j1-origin-scrolled.png" alt="進入前">
-<p><strong>②デモ中</strong>: 案C 気配バナー・デモDBの世界</p>
-<img src="../assets/jess-banner/shot-j2-demo.png" alt="デモ中">
-<p><strong>③復帰後</strong>: ①と同一ページ・同一スクロール位置（playwright 実測で y が一致）＋確認トースト</p>
-<img src="../assets/jess-banner/shot-j3b-restored.png" alt="復帰後">`,
+<p><a href="assets/jess-banner/journey-origin.html" target="_blank"><strong>▶ ライブで通し体験</strong></a> — プロトタイプを実装と同一CSSに更新済み。§3 までスクロール → 進入 → 右上バナー「元に戻る」→ 同位置復帰＋トースト</p>
+<img src="../assets/jess-banner/shot-j3b-restored.png" alt="復帰後（トースト表示）">`,
     },
     {
-      heading: "RJ2. 注入範囲の拡大を許容するか: 記録スクリプトは「jess.enabled 環境の全ページ」に載る",
+      heading: "E2. 前回⚠3点の解消: 長いレシピでも「元に戻る」が常に見え、収納時は点だけ",
+      note: `
+<p><strong>展開時</strong> — 3 fragment の長いレシピでも exit リンクは右端に常時表示（レシピ側が ellipsis）。前回はここが刈られて戻れなかった＝トースト不発の根因</p>
+<img src="../assets/jess-banner/crop-k1-expanded.png" alt="展開時クローズアップ">
+<p><strong>収納時</strong> — 文字は opacity で消え、点のみ（左端の覗きなし）</p>
+<img src="../assets/jess-banner/crop-k2-collapsed.png" alt="収納時クローズアップ">`,
+    },
+    {
+      heading: "E3. 正直な注記 — 未検証で残っているもの",
       note: `
 <ul>
-<li>スクロール位置は進入<strong>前</strong>のページでしか観測できないため、記録スクリプト（1KB未満・外部通信なし）はデモセッション外のページにも注入される</li>
-<li>従来方針「デモセッション中のみ注入」からの唯一の逸脱。<code>JESS_ENABLED=true</code> の環境（local/staging/demo）限定で、production には一切載らない</li>
-<li>嫌なら <code>jess.banner=false</code> で記録ごと全停止（その場合の exit は常に固定着地先）</li>
+<li>△ 実ホストアプリ（nadi / nonblok）での動作は未検証 — リリース後の composer update 適用時に <code>/demo/multi-area</code> で最終確認</li>
+<li>△ 厳格CSPホストでは inline style/script が弾かれバナーが出ない（実害なしだが未実測）</li>
+<li>✅ その他はテストで担保: 注入条件の絞り込み・open redirect 防止・cookie 削除による実DB復帰</li>
 </ul>`,
     },
   ],
   gate: [
-    "この仕様で実装開始 | 確定3点＋復帰ジャーニーを jess に実装する",
-    "再調整 | コメントに沿ってもう一度直す",
-    "保留 | 先の2修正のマージ/リリースだけ先に進める",
+    "承認 — main マージ＆リリースへ | 先の2修正と合わせて tag/push（akihiko-takai 切替）まで進める",
+    "修正 | ⚠コメントを反映して再提示",
+    "保留 | コミットのままにしておく",
   ],
 }
