@@ -25,6 +25,16 @@ class JessExitController extends Controller
             && ! str_starts_with($to, '//')
             && ! str_contains($to, '\\');
 
+        // The banner records `location.pathname`, which already carries the
+        // app's base path when the host is served under a prefix (reverse
+        // proxy with X-Forwarded-Prefix, e.g. `/new`). redirect() prepends
+        // that base again, yielding `/new/new/…` → 404. Strip a leading base
+        // path so the target is app-relative before generating the URL.
+        $base = rtrim($request->getBaseUrl(), '/');
+        if ($safe && $base !== '' && ($to === $base || str_starts_with($to, $base . '/'))) {
+            $to = substr($to, strlen($base)) ?: '/';
+        }
+
         return redirect($safe ? $to : (string) config('jess.exit_redirect', '/'))
             ->withoutCookie('jess_session');
     }

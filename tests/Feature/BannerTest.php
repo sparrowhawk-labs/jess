@@ -109,3 +109,10 @@ test('after exit, the next request is back on the host DB', function () {
         ->assertDontSee('id="jess-banner"', false)
         ->assertSee('jess_origin', false);
 });
+
+test('exit strips the app base path from ?to when served under a prefix (no /new/new)', function () {
+    // Simulate a reverse proxy mounting the app under /new (X-Forwarded-Prefix → getBaseUrl()).
+    $this->withServerVariables(['HTTP_X_FORWARDED_PREFIX' => '/new'])
+        ->get('/jess/exit?to=/new/manuals')
+        ->assertRedirect('http://localhost/new/manuals'); // base path once — not /new/new/manuals
+});
