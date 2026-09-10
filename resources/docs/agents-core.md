@@ -55,13 +55,21 @@ troubleshooting): **`docs/jess/README.md`**.
 ### Demo banner / exit (automatic — do not rebuild in the host app)
 
 While a demo session is active, jess injects a corner banner (recipe label
-+ "exit" link, auto-collapsing to a dot) into full-page HTML responses.
-Exit drops the demo cookie and returns the user to the page + scroll
-position they were on before entering the demo (recorded via a tiny
-script jess injects on non-demo pages while enabled); with no recording it
-lands on `config('jess.exit_redirect')` (default `/`). Disable everything
-with `jess.banner => false`; restyle via `vendor:publish --tag=jess-views`.
-Host apps should NOT implement their own demo banner or exit UI.
++ "exit" link, auto-collapsing to a dot) into full-page HTML responses. It
+sits bottom-right by default — change the corner with
+`config('jess.banner_position')` (`bottom-right|bottom-left|top-right|top-left`),
+never with a CSS override on `#jess-banner` in the host app.
+Exit drops the demo cookie and returns the user to **the page the demo link
+was pressed on**: the signed-link hit's `Referer` is recorded per session
+(any http(s) origin — an external review/gate page works), falling back to
+the in-app page + scroll position recorded by jess's own script, then to
+`config('jess.exit_redirect')` (default `/`). A cross-origin gate page must
+send its full URL as referrer (browser default sends origin only — add
+`<meta name="referrer" content="no-referrer-when-downgrade">`, or
+`referrerpolicy="unsafe-url"` on the link for https→http). Disable
+everything with `jess.banner => false`; restyle via
+`vendor:publish --tag=jess-views`. Host apps should NOT implement their own
+demo banner, exit UI, or banner positioning.
 
 ### Cleanup
 

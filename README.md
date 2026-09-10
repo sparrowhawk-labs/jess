@@ -72,6 +72,14 @@ works/doesn't pattern. Ledger reads/writes are now pinned to the host
 connection captured at construction; regression-tested at both the manager
 and HTTP level.
 
+2026-09-10 (v0.3.0) — the demo banner now defaults to the **bottom-right**
+corner (`jess.banner_position`), and exit returns to **the page the demo
+link was pressed on, even on another origin**: the Referer of the
+signed-link hit is recorded per session (new `return_to` column — run
+`php artisan migrate` when upgrading, and re-publish `--tag=jess-views` if
+you had published the banner) and consumed only by that session's exit.
+See "Return-to-origin on exit" below for the referrer-policy caveat.
+
 ---
 
 ## Quick start
@@ -120,6 +128,9 @@ Hitting `$url`:
 | `demo_db_storage_path` | `JESS_DEMO_DB_STORAGE_PATH` | `app/jess/demo-sessions` | Where per-session SQLite copies are written. Relative to `storage_path()` unless absolute. |
 | `template_db_path` | `JESS_TEMPLATE_DB_PATH` | *(none — required)* | Absolute path to a migrated, **empty-of-demo-data** SQLite file. You own keeping this in sync with your schema (see below). |
 | `connection` | `JESS_CONNECTION` | `jess_demo` | The DB connection name jess registers and repoints at each session's file. Kept out of your own connection names — fragments/Seeders never reference it. |
+| `banner` | `JESS_BANNER` | `true` | Inject the demo banner (and the in-app origin recorder/restorer scripts) into full-page HTML responses. `false` disables all injection. |
+| `banner_position` | `JESS_BANNER_POSITION` | `bottom-right` | Corner the banner and its collapsed dot sit in: `bottom-right`, `bottom-left`, `top-right`, `top-left`. Bottom-right by default so it never covers top-right app chrome (edit buttons, lightbox ✕). |
+| `exit_redirect` | `JESS_EXIT_REDIRECT` | `/` | Last-resort landing for the banner's exit — used only when no Referer was recorded at landing and nothing was recorded in-app (see "Return-to-origin on exit"). |
 | `cleanup_after_hours` | `JESS_CLEANUP_AFTER_HOURS` | `24` | Sessions older than this are eligible for `jess:cleanup`. |
 
 ### Preparing the template DB
@@ -230,19 +241,40 @@ during Phase 5 verification.
   full-page HTML responses get a small corner chip injected before
   `</body>`: an amber dot + "demo state" label + the active recipe + an
   exit link. It auto-collapses to just the dot after 3 seconds (hover
-  re-expands) so it never gets in the way of the screen being demoed.
-  The exit link hits `GET /jess/exit`, which only drops the `jess_session`
+  re-expands) so it never gets in the way of the screen being demoed, and
+  sits in the bottom-right corner by default (`jess.banner_position`) so
+  top-right app chrome — edit buttons, a lightbox's ✕ — stays reachable.
+  The exit link hits `GET /jess/exit`, which drops the `jess_session`
   cookie — the connection switch is cookie-driven, so the very next request
   is back on the host's real DB, no other teardown needed.
-- **Return-to-origin on exit.** On non-demo pages (still only while
-  `jess.enabled`), jess injects a ~1 KB recorder script that keeps the
-  current URL + scroll position in `sessionStorage`. When you exit a demo,
-  the banner routes through `/jess/exit?to=<that url>` (same-app relative
-  paths only — anything else falls back to `config('jess.exit_redirect')`,
-  default `/`), and on landing the scroll position is restored with a brief
-  confirmation toast. Entered from outside the app (nothing recorded)?
-  Exit lands on `exit_redirect`. Set `jess.banner => false` to disable the
-  banner and both scripts; publish `--tag=jess-views` to restyle them.
+- **Return-to-origin on exit.** Exit lands, in this order:
+  1. **The page the demo link was pressed on.** When the signed link is
+     hit, its `Referer` is recorded on the session (`return_to`) — any
+     absolute `http(s)` URL, *including another origin*, so a link from a
+     review/gate page hosted elsewhere returns you to that page. It is bound
+     to that session and consumed only by that session's exit; it is never
+     taken from a query parameter, so this cannot become an open redirect.
+     `javascript:`, `data:`, protocol-relative and relative referers are
+     ignored; a *same-origin* referer is left to step 2 (which also knows
+     the scroll position); a *bare origin* (`https://gate.example/`, no
+     path or query) is treated as unknown. **Referrer-policy caveat:**
+     browsers default to `strict-origin-when-cross-origin`, which sends
+     only that bare origin to another origin and *nothing* on an https→http
+     hop. For a cross-origin gate page to round-trip, that page must send
+     its full URL — e.g. `<meta name="referrer"
+     content="no-referrer-when-downgrade">` (same-scheme) or
+     `referrerpolicy="unsafe-url"` on the link (also https→http).
+  2. **In-app origin + scroll position.** On non-demo pages (still only
+     while `jess.enabled`), jess injects a ~1 KB recorder script that keeps
+     the current URL + scroll position in `sessionStorage`. With no recorded
+     Referer, the banner routes through `/jess/exit?to=<that url>` (same-app
+     relative paths only — anything else is dropped), and on landing the
+     scroll position is restored with a brief confirmation toast.
+  3. **`config('jess.exit_redirect')`** (default `/`) when neither exists —
+     typed URL, referrer stripped, fresh tab.
+
+  Set `jess.banner => false` to disable the banner and both scripts;
+  publish `--tag=jess-views` to restyle them.
   Injection only touches successful, full-page `text/html` GET responses —
   JSON, redirects, streams and Livewire partial updates pass through
   untouched. (Strict-CSP hosts may block the inline style/script: the

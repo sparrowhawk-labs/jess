@@ -15,6 +15,8 @@ final class DemoSession
         public readonly string $recipe,
         public readonly string $sqlitePath,
         public readonly DateTimeInterface $expiresAt,
+        /** Absolute http(s) URL the exit returns to, or null (fall through to `?to=` / config). */
+        public readonly ?string $returnTo = null,
     ) {
     }
 }

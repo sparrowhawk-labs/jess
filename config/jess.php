@@ -75,11 +75,29 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Banner position
+    |--------------------------------------------------------------------------
+    |
+    | Which screen corner the banner (and its collapsed dot) sits in:
+    | 'bottom-right' (default), 'bottom-left', 'top-right' or 'top-left'.
+    | Bottom-right by default because app chrome — edit/close buttons,
+    | lightbox ✕ — tends to live in the top-right corner.
+    |
+    */
+    'banner_position' => env('JESS_BANNER_POSITION', 'bottom-right'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Exit redirect
     |--------------------------------------------------------------------------
     |
-    | Where the banner's exit lands when no pre-demo location was recorded
-    | (e.g. the demo link was opened from outside the app).
+    | Where the banner's exit lands when nothing better is known. Normally
+    | exit returns to the page the demo link was pressed on: the Referer of
+    | the signed-link hit is recorded per session (any http(s) origin — a
+    | review page on another host works), and inside the app a tiny script
+    | also records URL + scroll position. This is the fallback for when the
+    | browser sent no Referer (typed URL, referrer-policy stripping it) and
+    | nothing was recorded in-app.
     |
     */
     'exit_redirect' => env('JESS_EXIT_REDIRECT', '/'),
