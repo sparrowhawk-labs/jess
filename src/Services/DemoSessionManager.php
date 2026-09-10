@@ -38,7 +38,11 @@ class DemoSessionManager
         $this->hostConnection = (string) config('database.default');
     }
 
-    public function provision(StateRecipe $recipe): DemoSession
+    /**
+     * @param  string|null  $returnTo  Already-validated absolute http(s) URL
+     *                                 the exit should land on for this session.
+     */
+    public function provision(StateRecipe $recipe, ?string $returnTo = null): DemoSession
     {
         $templatePath = (string) config('jess.template_db_path');
 
@@ -97,12 +101,13 @@ class DemoSessionManager
             'uuid' => $uuid,
             'recipe' => $recipeLabel,
             'demo_db_path' => $targetPath,
+            'return_to' => $returnTo,
             'expires_at' => $expiresAt,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
 
-        return new DemoSession($uuid, $recipeLabel, $targetPath, $expiresAt);
+        return new DemoSession($uuid, $recipeLabel, $targetPath, $expiresAt, $returnTo);
     }
 
     /**
@@ -121,7 +126,13 @@ class DemoSessionManager
             return null;
         }
 
-        return new DemoSession($row->uuid, $row->recipe, $row->demo_db_path, new \DateTimeImmutable($row->expires_at));
+        return new DemoSession(
+            $row->uuid,
+            $row->recipe,
+            $row->demo_db_path,
+            new \DateTimeImmutable($row->expires_at),
+            $row->return_to,
+        );
     }
 
     /**

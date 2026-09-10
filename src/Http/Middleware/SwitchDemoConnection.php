@@ -94,7 +94,7 @@ class SwitchDemoConnection
         }
 
         $assets = $session !== null
-            ? view('jess::banner', ['recipe' => $session->recipe])->render()
+            ? view('jess::banner', ['recipe' => $session->recipe, 'hasReturn' => $session->returnTo !== null])->render()
             : view('jess::scripts')->render();
 
         $response->setContent(
