@@ -35,6 +35,11 @@
 > config/route/接続名/cookie名/artisan コマンド等すべて `nawate:*` → `jess:*` に統一。以降この
 > ドキュメント内の `nawate` 表記（本節より上）は当時の記録としてそのまま残す。
 
+> **2026-09-12 追記**: ローカルのリポジトリディレクトリも `~/project/nawate-dev` → `~/project/jess`
+> に改名（パッケージ名との不一致解消）。path repository で参照する 8 ホストアプリ（alumni2 /
+> cadence(=xpost-studio) / cadence-v2 / jess-demo-app / nonblok-v3 / tearexo-app-v1 / nadi/app）の
+> composer.json を `../jess` に追従済み。本ドキュメント内の `nawate-dev` 表記は当時の記録として残す。
+
 > **2026-07-31 追記（実運用バグ修正: 旧デモ cookie が生きたまま新しい署名リンクを踏むと1回おきに実DBが表示される）**
 > nonblok-v3 のドッグフードで実測・再現。旧セッションの `jess_session` cookie が残った状態で新しい
 > 署名リンクを踏むと、`SwitchDemoConnection` が先に `database.default` をデモ SQLite へ切り替え、
